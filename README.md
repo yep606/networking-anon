@@ -23,6 +23,11 @@ your internet connection entirely).
   configuration with all secrets replaced by placeholders.
 - [`configs/server.example.json`](configs/server.example.json) — a minimal
   generic VLESS+Reality server-side example (adapt to your own setup).
+- [`scripts/Enable-DnsKillswitch.ps1`](scripts/Enable-DnsKillswitch.ps1) —
+  Windows: block DNS on the physical interface at the firewall level, so the
+  OS resolver can never bypass the tunnel.
+- [`scripts/Disable-DnsKillswitch.ps1`](scripts/Disable-DnsKillswitch.ps1) —
+  Windows: revert the killswitch and restore normal direct internet.
 
 ## The short version
 
@@ -38,6 +43,11 @@ Three things must be true for leak-free operation:
 3. **Match IP versions to your server.** If your VPS is IPv4-only, do not hand
    out AAAA records — set `"strategy": "ipv4_only"` — or clients will try
    unreachable IPv6 destinations and stall.
+4. **On Windows, add a firewall killswitch.** The tunnel config alone cannot
+   stop the OS resolver: Windows' DNS Client sprays queries on every adapter
+   via interface-bound sockets that bypass TUN routes entirely. A
+   firewall-level killswitch on the physical interface is required — see
+   [`scripts/`](scripts).
 
 ## Quick start
 
@@ -48,10 +58,16 @@ cp configs/client.json config.json
 # 2. Validate
 sing-box check -c config.json
 
-# 3. Run (needs admin/root for TUN)
+# 3. (Windows only) Enable the DNS killswitch BEFORE starting sing-box,
+#    so the OS resolver cannot bypass the tunnel:
+powershell -ExecutionPolicy Bypass -File .\scripts\Enable-DnsKillswitch.ps1
+#    (after you're done, restore normal internet with
+#     .\scripts\Disable-DnsKillswitch.ps1)
+
+# 4. Run (needs admin/root for TUN)
 sing-box run -c config.json
 
-# 4. Verify — should print your VPS IP
+# 5. Verify — should print your VPS IP
 curl https://ifconfig.me
 ```
 

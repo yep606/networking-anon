@@ -64,6 +64,17 @@ Key properties:
 Even with zero DNS leaks: `Accept-Language` headers, JavaScript-reported
 timezone, and WebRTC can each contradict your "foreign" exit IP.
 
+## Why the resolver's location may differ from your exit IP
+
+After the fix, a leak test may show your resolvers (e.g. Cloudflare)
+geolocated in a different country than your VPS exit IP. This is **not a
+problem**: `1.1.1.1` is **anycast** — your queries go to the nearest
+Cloudflare node, and the egress IPs Cloudflare uses for authoritative lookups
+geolocate to wherever Cloudflare registered them, not to you. A location
+mismatch between your exit IP and your resolver is expected and carries no
+information about you. Only the presence of your **ISP's own resolvers** in a
+leak test indicates a real leak.
+
 ## The fix used in this repo
 
 - `sniff` + `protocol: "dns"` → `hijack-dns`: sing-box answers every port-53

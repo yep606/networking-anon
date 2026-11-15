@@ -1,4 +1,4 @@
-# Troubleshooting: Three Failure Modes Seen in Practice
+# Troubleshooting: Four Failure Modes Seen in Practice
 
 Each of these was diagnosed from real sing-box logs. Symptoms are similar
 ("no internet" / "test still shows my ISP"), causes are not.
@@ -81,6 +81,32 @@ out, followed by connections that never complete.
 
 ---
 
+## 4. Leak persists with a verified-correct config (Windows)
+
+**Symptom.** The sing-box config is provably correct — even a point-blank
+`nslookup example.com 203.0.113.10` (the ISP resolver's IP) is hijacked
+(visible in the log, answered via the tunnel in ~500 ms) — yet the leak test
+still shows the ISP's resolvers, now including the ISP's **IPv6** resolvers.
+
+**Cause.** Windows' DNS Client service uses *smart multi-homed name
+resolution*: it fires queries on **every adapter in parallel** via sockets
+bound to each physical interface. Interface-bound sockets bypass the VPN/TUN
+routes entirely — packets leave through the physical NIC → router → ISP
+resolver, never touching the tunnel. IPv6 router advertisements (RDNSS) from
+the ISP add a second bypass. Key insight: `nslookup` follows the route table
+(so it gets hijacked and looks clean), while the OS resolver's bound sockets
+do not — **a clean nslookup probe does NOT prove a clean resolver**.
+
+**Fix.** Run `scripts/Enable-DnsKillswitch.ps1`: it blocks outbound DNS
+(UDP/TCP 53 and 853) on the physical interface at the firewall level,
+disables the IPv6 binding on that interface, and disables smart multi-homed
+name resolution. Revert with `scripts/Disable-DnsKillswitch.ps1`.
+
+**Log signature.** Leak test shows ISP resolvers (v4 and v6) while sing-box
+logs show all TUN-arriving DNS hijacked and no ISP-destined packets at all.
+
+---
+
 ## Verification checklist
 
 ```powershell
@@ -97,5 +123,11 @@ inbound connection to 142.250.x.x:443
 outbound/vless[proxy]: outbound connection to 142.250.x.x:443
 ```
 
-Finally, run the **extended** test at dnsleaktest.com: only your chosen
-resolver's egress (e.g. Cloudflare) should appear — no ISP servers.
+Finally, run the **extended** test at dnsleaktest.com: the expected end
+state is a **single ISP** in the results — only your chosen resolver's egress
+(e.g. Cloudflare), no ISP servers.
+
+> **Note.** The resolver's geolocation may differ from your VPS location —
+> `1.1.1.1` is anycast, so its egress IPs geolocate to a Cloudflare node, not
+> to you. That mismatch is normal and is **not** a leak; only the presence of
+> your own ISP's resolvers indicates one.
