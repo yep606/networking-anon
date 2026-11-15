@@ -74,6 +74,16 @@ curl https://ifconfig.me
 Then run an extended test on [dnsleaktest.com](https://dnsleaktest.com) —
 you should see only your chosen resolver (e.g. Cloudflare), never your ISP.
 
+## Verified results
+
+The extended leak test, before and after applying this repo's fix (tunnel
+config + Windows killswitch):
+
+| Before | After |
+| --- | --- |
+| ![Before: 24 servers, 3 ISPs — including the ISP's IPv4 and IPv6 resolvers](docs/images/leak-test-before.png) | ![After: 8 servers, 1 ISP — Cloudflare only](docs/images/leak-test-after.png) |
+| 24 servers, 3 ISPs, 3 locations — the ISP's v4 **and** v6 resolvers leak despite a correct sing-box config (failure mode 4). | 8 servers, 1 ISP, 1 location — Cloudflare only. The Warsaw geolocation is just Cloudflare's anycast egress, not a leak. |
+
 ## Security note
 
 Never commit real credentials: VLESS UUIDs, Reality private/public key pairs,
