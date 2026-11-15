@@ -1,0 +1,4 @@
+# Local working copies with real secrets — never commit these
+config.json
+*.local.json
+secrets.*
