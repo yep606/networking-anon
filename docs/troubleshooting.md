@@ -107,6 +107,51 @@ logs show all TUN-arriving DNS hijacked and no ISP-destined packets at all.
 
 ---
 
+## 5. GeoIP databases disagree on the VPS country
+
+**Symptom.** The tunnel works (exit IP = VPS IP, DNS test clean), but some
+site (e.g. 2ip) shows a *wrong country* for your IP — while ipinfo.io,
+dnsleaktest.com and others show the right one.
+
+**Cause.** IP geolocation is not a measurement — it is a lookup in a private
+database, and each vendor (MaxMind, ipinfo, DB-IP, 2ip's own DB, ...) keeps
+its own mapping that updates at its own speed. VPS providers often announce
+**leased/reassigned IP blocks**: a block may originally belong to one RIR
+region (e.g. LACNIC), get leased through an IP broker registered in a third
+country, and only recently be re-registered to the actual hoster. Any
+database holding the *stale* record reports the broker's country instead of
+the physical one.
+
+**Diagnosis.** Check the IP against several independent sources:
+
+```bash
+curl -s http://ip-api.com/json/<VPS_IP> | jq -r '.country, .city'
+curl -s https://ipwho.is/<VPS_IP>     | jq -r '.country, .city'
+curl -s https://ipapi.co/<VPS_IP>/json/ | jq -r '.country_name, .city'
+```
+
+…plus the [MaxMind GeoIP demo](https://www.maxmind.com/en/geoip-demo) in a
+browser (many large services use MaxMind). The ground truth is the RDAP
+registration of the block:
+
+```bash
+curl -sL https://rdap.org/ip/<VPS_IP> | jq -r '.name, .country'
+```
+
+If most providers (especially MaxMind) agree on the right country and one or
+two outliers disagree, the outliers are stale — not your config.
+
+**Fix.** Nothing to fix in sing-box. Optionally submit a correction to the
+stale provider (2ip has a "change location" link; MaxMind and DB-IP have
+correction forms). Databases converge on the new registration within weeks.
+
+**Verdict rule.** A GeoIP mismatch on a minority of databases is *expected
+behavior* for freshly leased blocks and is **not** a leak. What counts as a
+problem: your home ISP's resolvers in a DNS leak test, or your real IP
+showing up anywhere.
+
+---
+
 ## Verification checklist
 
 ```powershell
