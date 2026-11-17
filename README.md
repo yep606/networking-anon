@@ -1,28 +1,54 @@
-# sing-box DNS Leak Fix (VLESS + Reality + TUN)
+# sing-box Private Endpoint: Full Setup Guide + DNS Leak Fix (VLESS + Reality + TUN)
 
-A practical guide and ready-to-use configuration for running **sing-box** with a
-**VLESS + Reality** outbound and a **TUN** inbound — without leaking your DNS
-queries to your ISP.
+A complete, step-by-step guide for turning a fresh VPS into a personal
+network endpoint with **sing-box** — **VLESS + Reality** on the server,
+**TUN** on the client — including the DNS-leak fix this repo started with.
 
-Born from a real debugging session: a leak test showed the VPS exit IP working
-fine while DNS queries were still answered by the ISP's resolvers. This repo
-documents why that happened, the exact configuration that fixes it, and the
-pitfalls encountered along the way (including two ways to accidentally kill
-your internet connection entirely).
+Born from real debugging sessions: a leak test showed the VPS exit IP working
+fine while DNS queries were still answered by the ISP's resolvers — and later
+a full server provisioning run distilled into a reusable guide. This repo
+documents the protocol, the setup, the leaks, and the pitfalls (including two
+ways to accidentally kill your internet connection entirely).
 
 ![DNS Leak Anatomy](docs/images/dns-leak-anatomy.png)
 
 ## Contents
 
+**Understand it**
+
+- [`docs/protocol-explained.md`](docs/protocol-explained.md) — how sing-box,
+  VLESS, Reality, and the TUN/DNS path work, schematically, with a
+  field-by-field cheat sheet for both configs.
 - [`docs/dns-leak-explained.md`](docs/dns-leak-explained.md) — what a DNS leak
   is, how leak-test sites detect it (unique-hostname correlation through the
   authoritative DNS), and why the HTTP request itself reveals nothing.
-- [`docs/troubleshooting.md`](docs/troubleshooting.md) — the three failure
-  modes hit in practice and how each was diagnosed from sing-box logs.
-- [`configs/client.json`](configs/client.json) — the final, working client
+
+**Do it**
+
+- [`docs/server-setup-guide.md`](docs/server-setup-guide.md) — the full
+  step-by-step guide: preflight → admin user + SSH hardening → install →
+  secrets → server config → firewall → service → client profile →
+  verification. Every phase has a PASS/FAIL gate and a rollback note.
+- [`docs/llm-setup-prompt.md`](docs/llm-setup-prompt.md) — a ready-made,
+  parameterized prompt: fill in the input block, paste it into a fresh LLM
+  session with terminal access, and it configures a new server for you —
+  with secret-handling rules and per-phase verification built in.
+- [`scripts/bootstrap-server.sh`](scripts/bootstrap-server.sh) — the
+  scriptable alternative: installs sing-box, generates secrets, writes and
+  validates the server config, sets up UFW, starts the service, prints the
+  client-side values once.
+
+**Reference configs**
+
+- [`configs/client.json`](configs/client.json) — the working client
   configuration with all secrets replaced by placeholders.
 - [`configs/server.example.json`](configs/server.example.json) — a minimal
   generic VLESS+Reality server-side example (adapt to your own setup).
+
+**DNS-leak specifics**
+
+- [`docs/troubleshooting.md`](docs/troubleshooting.md) — the four failure
+  modes hit in practice and how each was diagnosed from sing-box logs.
 - [`scripts/Enable-DnsKillswitch.ps1`](scripts/Enable-DnsKillswitch.ps1) —
   Windows: block DNS on the physical interface at the firewall level, so the
   OS resolver can never bypass the tunnel.
