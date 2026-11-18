@@ -13,7 +13,7 @@
   powershell -ExecutionPolicy Bypass -File .\Disable-DnsKillswitch.ps1 -InterfaceAlias "Ethernet"
 #>
 param(
-    [string]$InterfaceAlias = "Wi-Fi"
+    [string]$InterfaceAlias = ""
 )
 
 # --- self-elevate to Administrator ---
@@ -22,6 +22,28 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
     Write-Host "Requesting administrator privileges..."
     Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -InterfaceAlias `"$InterfaceAlias`""
     exit
+}
+
+# --- auto-detect the active internet adapter if not specified (same
+# logic as Enable-DnsKillswitch.ps1). Firewall rules are removed by name
+# regardless; the adapter is only needed to re-enable IPv6.
+if (-not $InterfaceAlias) {
+    $physical = Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-Object Status -eq 'Up'
+    $route = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
+        Where-Object { $_.NextHop -ne '0.0.0.0' } |
+        Sort-Object RouteMetric, InterfaceMetric |
+        Select-Object -First 1
+    $candidate = $null
+    if ($route) {
+        $candidate = $physical | Where-Object InterfaceIndex -eq $route.ifIndex | Select-Object -First 1
+    }
+    if (-not $candidate) {
+        $candidate = $physical | Sort-Object InterfaceMetric | Select-Object -First 1
+    }
+    if ($candidate) {
+        $InterfaceAlias = $candidate.Name
+        Write-Host "[*] Auto-detected active adapter: '$InterfaceAlias'"
+    }
 }
 
 # --- 1. remove firewall killswitch rules ---

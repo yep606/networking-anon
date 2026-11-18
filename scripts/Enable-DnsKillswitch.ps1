@@ -15,7 +15,7 @@
   powershell -ExecutionPolicy Bypass -File .\Enable-DnsKillswitch.ps1 -InterfaceAlias "Ethernet"
 #>
 param(
-    [string]$InterfaceAlias = "Wi-Fi"
+    [string]$InterfaceAlias = ""
 )
 
 # --- self-elevate to Administrator ---
@@ -24,6 +24,29 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
     Write-Host "Requesting administrator privileges..."
     Start-Process powershell -Verb RunAs -ArgumentList "-NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -InterfaceAlias `"$InterfaceAlias`""
     exit
+}
+
+# --- auto-detect the active internet adapter if not specified ---
+# Strategy: the physical adapter carrying the default IPv4 route. If a VPN
+# tunnel owns the default route (virtual adapter), fall back to the
+# physical "Up" adapter with the lowest interface metric.
+if (-not $InterfaceAlias) {
+    $physical = Get-NetAdapter -Physical -ErrorAction SilentlyContinue | Where-Object Status -eq 'Up'
+    $route = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
+        Where-Object { $_.NextHop -ne '0.0.0.0' } |
+        Sort-Object RouteMetric, InterfaceMetric |
+        Select-Object -First 1
+    $candidate = $null
+    if ($route) {
+        $candidate = $physical | Where-Object InterfaceIndex -eq $route.ifIndex | Select-Object -First 1
+    }
+    if (-not $candidate) {
+        $candidate = $physical | Sort-Object InterfaceMetric | Select-Object -First 1
+    }
+    if ($candidate) {
+        $InterfaceAlias = $candidate.Name
+        Write-Host "[*] Auto-detected active adapter: '$InterfaceAlias'"
+    }
 }
 
 # --- validate the adapter exists ---
