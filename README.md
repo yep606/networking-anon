@@ -55,6 +55,20 @@ ways to accidentally kill your internet connection entirely).
   (GoLogin, AdsPower, MoreLogin, ...), TUN vs per-profile SOCKS5 modes, and
   what fingerprint checkers (CreepJS, Pixelscan, Iphey) actually catch.
 
+**KYC privacy audit (iPhone + Windows)**
+
+- [`docs/kyc-privacy-audit.md`](docs/kyc-privacy-audit.md) — the full
+  problem→solution journey: intercepting iPhone HTTPS traffic from Windows,
+  chaining mitmproxy with sing-box (and why running both on the phone breaks
+  the chain), EXIF leaks, what browser KYC (Persona) actually collects, and
+  GPS spoofing to another country — with redacted proof screenshots.
+- [`docs/kyc-audit-checklist.md`](docs/kyc-audit-checklist.md) — the
+  operational checklist: mitmproxy + iPhone setup, EXIF stripping, IP/WebRTC
+  leak tests, and the signal-consistency table anti-fraud systems check.
+- [`scripts/Setup-KycAudit.ps1`](scripts/Setup-KycAudit.ps1) — one-shot
+  Windows setup: installs mitmproxy + exiftool, opens the firewall port,
+  prints the LAN IP for the iPhone proxy settings.
+
 **DNS-leak specifics**
 
 - [`docs/troubleshooting.md`](docs/troubleshooting.md) — the four failure
