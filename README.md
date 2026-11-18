@@ -42,8 +42,18 @@ ways to accidentally kill your internet connection entirely).
 
 - [`configs/client.json`](configs/client.json) — the working client
   configuration with all secrets replaced by placeholders.
+- [`configs/client-socks.json`](configs/client-socks.json) — local
+  SOCKS5/HTTP inbound variant (no TUN, no admin rights): point individual
+  apps or anti-detect browser profiles at `127.0.0.1:1080`.
 - [`configs/server.example.json`](configs/server.example.json) — a minimal
   generic VLESS+Reality server-side example (adapt to your own setup).
+
+**Going further**
+
+- [`docs/antidetect-browsers.md`](docs/antidetect-browsers.md) — combining
+  the endpoint with anti-detect browsers: tested free-tier comparison
+  (GoLogin, AdsPower, MoreLogin, ...), TUN vs per-profile SOCKS5 modes, and
+  what fingerprint checkers (CreepJS, Pixelscan, Iphey) actually catch.
 
 **DNS-leak specifics**
 
